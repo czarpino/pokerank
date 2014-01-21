@@ -304,25 +304,24 @@ class Pokerank
                  $prank[($card3 & 0x0F)] *
                  $prank[($card4 & 0x0F)] *
                  $prank[($card5 & 0x0F)];
-        
-        $lookup = $this->getLookup();
-        $rank = $lookup[$pprod];
                 
         // Check if hand is a flush
         if ($card1 & $card2 & $card3 & $card4 & $card5 & 0xF0) {
-            if (in_array($pprod, [31367009, 14535931, 6678671, 2800733, 1062347, 323323, 85085, 15015, 2310, 205205])) {
+            if ($pprod === 31367009 || $pprod === 14535931 ||
+                $pprod === 6678671  || $pprod === 2800733  ||
+                $pprod === 1062347  || $pprod === 323323   ||
+                $pprod === 85085    || $pprod === 15015    ||
+                $pprod === 2310     || $pprod === 205205) {
                 
                 // It's a straight flush!
-                $rank += self::STRAIGHT_FLUSH_BONUS;
+                return $this->lookup[$pprod] + self::STRAIGHT_FLUSH_BONUS;
             }
-            else {
-                
-                // It's a regular flush
-                $rank += self::HIGHCARD_FLUSH_BONUS;
-            }
+            
+            // It's a regular flush
+            return $this->lookup[$pprod] + self::HIGHCARD_FLUSH_BONUS;
         }
         
-        return $rank;
+        return $this->lookup[$pprod];
     }
     
     /**
