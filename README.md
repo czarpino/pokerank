@@ -9,6 +9,7 @@ Quick Usage
 -----------
 
     $pokerank = new Pokerank();
+    $pokerank->setLookup(require ".." . DIRECTORY_SEPARATOR . "src" . DIRECTORY_SEPARATOR . "lookup.php");
 
     // Royal flush
     $card1 = $pokerank->toInt(Pokerank::SPADE, Pokerank::ACE);
@@ -30,8 +31,3 @@ Requirements
 The program was developed using PHP5.4 and used some features (eg. `[]` vs `array ()`) not available to 5.3 and below. It shouldn't be too hard to port though.
 
 
-
-Disclaimer
-----------
-
-Program is largely untested so ... yeah.
