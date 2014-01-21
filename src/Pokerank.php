@@ -5,27 +5,36 @@
  * score is given to a poker hand such that a better hand will always
  * have a higher score.
  * 
- * Cards are represented by 8-bit integers with the following bit
- * scheme:
  * 
- * BIT SCHEME: cdhs|rrrr
- * Where: cdhs = Card suit
- *        rrrr = Card rank
- * EG.
- * 
- * 0x10 => Spade Two
- * 0x20 => Heart Two
- * 0x40 => Diamond Two
- * 0x80 => Club Two
- * ...
- * 0x1C => Spade Ace
- * 0x2C => Heart Ace
- * 0x4C => Diamond Ace
- * 0x8C => Club Ace
- * 
- * Cards are also assign a prime equivalent based on its rank:
+ * Cards are assigned a prime equivalent based on its rank:
  * 
  * (Deuce) 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 (Ace)
+ * 
+ * 
+ * A Cards is represented by a 12-bit integer with the following bit
+ * scheme:
+ * 
+ * BIT SCHEME: ssss | pppp pppp
+ * ssss => Card suit (spade=1=0b0001, Hear=2=0b0010, Diamond=4=0b0100, Club=8=0b1000)
+ * pppppppp => Card prime value (Deuce=2=0b00000010, ..., Ace=41=0b00101001)
+ * 
+ * EG.
+ * 
+ * Hex   |   Card
+ * --------------------
+ * 
+ * 0x102 => 2 of Spades
+ * 0x103 => 3 of Spades
+ * 0x105 => 4 of Spades
+ * ...
+ * 0x129 => Ace of Spades
+ * 
+ * 0x202 => 2 of Heart
+ * 0x203=> 3 of Heart
+ * 0x205 => 4 of Heart
+ * ...
+ * 0x229 => Ace of Heart
+ * ...
  * 
  * 
  * @author Czar Pino
@@ -83,6 +92,13 @@ class Pokerank
     private $lookup = NULL;
     
     /**
+     * prime values of card ranks
+     * 
+     * @var array
+     */
+    private $primeRankValues = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41];
+    
+    /**
      * Generate the lookup table
      * 
      * @return array
@@ -94,17 +110,16 @@ class Pokerank
         // Skip values for straight flush
         $value = self::TOTAL_DISTINCT - 10;
         $lookup = [];
-        $prank = $this->getPrimeRankValues();
         
         // Four-of-a-kind
         for ($four = self::ACE; $four >= self::DEUCE; $four --) {
             for ($kicker = self::ACE; $kicker >= self::DEUCE; $kicker --) {
                 if ($four !== $kicker) {
-                    $pprod = $prank[$four] *
-                             $prank[$four] *
-                             $prank[$four] *
-                             $prank[$four] *
-                             $prank[$kicker];
+                    $pprod = $this->primeRankValues[$four] *
+                             $this->primeRankValues[$four] *
+                             $this->primeRankValues[$four] *
+                             $this->primeRankValues[$four] *
+                             $this->primeRankValues[$kicker];
                     $lookup[$pprod] = $value;
                     $value --;
                 }
@@ -115,11 +130,11 @@ class Pokerank
         for ($three = self::ACE; $three >= self::DEUCE; $three --) {
             for ($two = self::ACE; $two >= self::DEUCE; $two --) {
                 if ($three !== $two) {
-                    $pprod = $prank[$three] *
-                             $prank[$three] *
-                             $prank[$three] *
-                             $prank[$two] *
-                             $prank[$two];
+                    $pprod = $this->primeRankValues[$three] *
+                             $this->primeRankValues[$three] *
+                             $this->primeRankValues[$three] *
+                             $this->primeRankValues[$two] *
+                             $this->primeRankValues[$two];
                     $lookup[$pprod] = $value;
                     $value --;
                 }
@@ -131,17 +146,17 @@ class Pokerank
         
         // Straight
         for ($high = self::ACE; $high > self::FIVE; $high --) {
-            $pprod = $prank[$high] *
-                     $prank[$high - 1] *
-                     $prank[$high - 2] *
-                     $prank[$high - 3] *
-                     $prank[$high - 4];
+            $pprod = $this->primeRankValues[$high] *
+                     $this->primeRankValues[$high - 1] *
+                     $this->primeRankValues[$high - 2] *
+                     $this->primeRankValues[$high - 3] *
+                     $this->primeRankValues[$high - 4];
             $lookup[$pprod] = $value;
             $value --;
         }
         
         // Straight special case: 5-4-3-2-A
-        $lookup[$prank[5] * $prank[4] * $prank[3] * $prank[2] * $prank[12]] = $value;
+        $lookup[$this->primeRankValues[5] * $this->primeRankValues[4] * $this->primeRankValues[3] * $this->primeRankValues[2] * $this->primeRankValues[12]] = $value;
         $value --;
         
         // Three-of-a-kind
@@ -149,11 +164,11 @@ class Pokerank
             for ($kicker1 = self::ACE; $kicker1 > $three; $kicker1 --) {
                 for ($kicker2 = $kicker1 - 1; $kicker2 >= self::DEUCE; $kicker2 --) {
                     if ($three !== $kicker2) {
-                        $pprod = $prank[$three] *
-                                 $prank[$three] *
-                                 $prank[$three] *
-                                 $prank[$kicker1] *
-                                 $prank[$kicker2];
+                        $pprod = $this->primeRankValues[$three] *
+                                 $this->primeRankValues[$three] *
+                                 $this->primeRankValues[$three] *
+                                 $this->primeRankValues[$kicker1] *
+                                 $this->primeRankValues[$kicker2];
 
                         $lookup[$pprod] = $value;
                         $value --;
@@ -163,11 +178,11 @@ class Pokerank
             for ($kicker1 = $three - 1; $kicker1 > self::DEUCE; $kicker1 --) {
                 for ($kicker2 = $kicker1 - 1; $kicker2 >= self::DEUCE; $kicker2 --) {
                     if ($three !== $kicker2) {
-                        $pprod = $prank[$three] *
-                                 $prank[$three] *
-                                 $prank[$three] *
-                                 $prank[$kicker1] *
-                                 $prank[$kicker2];
+                        $pprod = $this->primeRankValues[$three] *
+                                 $this->primeRankValues[$three] *
+                                 $this->primeRankValues[$three] *
+                                 $this->primeRankValues[$kicker1] *
+                                 $this->primeRankValues[$kicker2];
 
                         $lookup[$pprod] = $value;
                         $value --;
@@ -181,11 +196,11 @@ class Pokerank
             for ($pair2 = $pair1 - 1; $pair2 >= self::DEUCE; $pair2 --) {
                 for ($kicker = self::ACE; $kicker >= self::DEUCE; $kicker --) {
                     if ($pair1 !== $kicker && $pair2 !== $kicker) {
-                        $pprod = $prank[$pair1] *
-                                 $prank[$pair1] *
-                                 $prank[$pair2] *
-                                 $prank[$pair2] *
-                                 $prank[$kicker];
+                        $pprod = $this->primeRankValues[$pair1] *
+                                 $this->primeRankValues[$pair1] *
+                                 $this->primeRankValues[$pair2] *
+                                 $this->primeRankValues[$pair2] *
+                                 $this->primeRankValues[$kicker];
                         $lookup[$pprod] = $value;
                         $value --;
                     }
@@ -201,11 +216,11 @@ class Pokerank
                         if ($p !== $k2) {
                             for ($k3 = $k2 - 1; $k3 >= self::DEUCE; $k3 --) {
                                 if ($p !== $k3) {
-                                    $pprod = $prank[$p] *
-                                             $prank[$p] *
-                                             $prank[$k1] *
-                                             $prank[$k2] *
-                                             $prank[$k3];
+                                    $pprod = $this->primeRankValues[$p] *
+                                             $this->primeRankValues[$p] *
+                                             $this->primeRankValues[$k1] *
+                                             $this->primeRankValues[$k2] *
+                                             $this->primeRankValues[$k3];
                                     $lookup[$pprod] = $value;
                                     $value --;
                                 }
@@ -229,11 +244,11 @@ class Pokerank
                             if ($c1 === self::ACE && 5 === $c2 && 4 === $c3 && 3 === $c4 && 2 === $c5) {
                                 continue;
                             }
-                            $pprod = $prank[$c1] *
-                                     $prank[$c2] *
-                                     $prank[$c3] *
-                                     $prank[$c4] *
-                                     $prank[$c5];
+                            $pprod = $this->primeRankValues[$c1] *
+                                     $this->primeRankValues[$c2] *
+                                     $this->primeRankValues[$c3] *
+                                     $this->primeRankValues[$c4] *
+                                     $this->primeRankValues[$c5];
                             $lookup[$pprod] = $value;
                             $value --;
                         }
@@ -260,32 +275,6 @@ class Pokerank
     }
     
     /**
-     * Retrieve the lookup table. If the lookup table has not been
-     * set it will be created. This may slowdown scoring so it is
-     * recommended to set the lookup beforehand using lookup.php.
-     * 
-     * @return array
-     */
-    public function getLookup()
-    {
-        if (NULL === $this->lookup) {
-            $this->lookup = $this->createLookup();
-        }
-        
-        return $this->lookup;
-    }
-    
-    /**
-     * Get prime values of ranks
-     * 
-     * @return array
-     */
-    public function getPrimeRankValues()
-    {
-        return [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41];
-    }
-    
-    /**
      * Assign a score to the set of cards
      * 
      * @param int $card1
@@ -297,16 +286,12 @@ class Pokerank
      * @return int [1, 7462]
      */
     public function score($card1, $card2, $card3, $card4, $card5)
-    {
-        $prank = $this->getPrimeRankValues();
-        $pprod = $prank[($card1 & 0x0F)] *
-                 $prank[($card2 & 0x0F)] *
-                 $prank[($card3 & 0x0F)] *
-                 $prank[($card4 & 0x0F)] *
-                 $prank[($card5 & 0x0F)];
+    {   
+        $pprod = ($card1 & 0x0FF) * ($card2 & 0x0FF) * ($card3 & 0x0FF) *
+                 ($card4 & 0x0FF) * ($card5 & 0x0FF);
                 
         // Check if hand is a flush
-        if ($card1 & $card2 & $card3 & $card4 & $card5 & 0xF0) {
+        if (0xF00 & $card1 & $card2 & $card3 & $card4 & $card5) {
             if ($pprod === 31367009 || $pprod === 14535931 ||
                 $pprod === 6678671  || $pprod === 2800733  ||
                 $pprod === 1062347  || $pprod === 323323   ||
@@ -334,7 +319,7 @@ class Pokerank
      */
     public function toInt($suit, $rank)
     {
-        return ($suit << 4) | $rank;
+        return $suit << 8 | $this->primeRankValues[$rank];
     }
     
 }
